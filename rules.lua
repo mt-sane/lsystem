@@ -38,39 +38,7 @@ end
 
 LSystem.Rule.B = {}
 
--- Use this to check your l-system inner workings.
---
--- info -> The l-system's current build info.
--- ...  -> Parameters passed to the rule's build function.
---
--- The function will check the folowing info.global fields:
--- diag       -> nil or the log stream to issue the log to.
---               If nil nothing the function does nothing.
---               All other values are passed directly as the first parameter to minetest.log.
--- diagLevels -> nil or a table of log levels per rule key.
---               If nil all rules are logged with level 1.
---
--- Log levels: 
--- 0 - Nothing.
--- 1 - Action.      -> Log the that the rule is called.
---                     Default rules use LSystem.Rule.B.Diag for action log.
--- 2 - 1 + Info.    -> Additionally log what the rules does.
---                     Default rules log when they change info fileds. If they contain a random
---                     component the result will be logged too.
--- 3 - 2 + Verbose. -> Whatever else is deemed necessary to be logged.
---                     Default rules do not log anything verbose.
---               
--- Example: 
--- diagLevels = { a=0, b=1, c=2, } -> Rule a will not be logged.
---                                    Rule b will log it's actions.
---                                    Rule c will log it's actions and decisions.
---                                    All other rules log on level 1.
---
--- The logged informations are: 
--- info.key       -> The key of the rule,
--- info.parameter -> Parameters passed to the rule.
--- info.state.pos -> The current position.
--- info.state.dir -> The current direction.
+-- See https://github.com/mt-sane/lsystem/wiki/default-rule-functions#diag
 --
 function LSystem.Rule.B:Diag(info, ...)
 	local logLevel, diag = info:LogLevel()
@@ -113,11 +81,7 @@ function LSystem.Rule.B:Diag(info, ...)
 	minetest.log(diag, table.concat(m))
 end
 
--- Moves the current position in the current direction.
---
--- info -> The l-system's current build info.
---
--- This simply adds info.state.dir to info.state.pos.
+-- See https://github.com/mt-sane/lsystem/wiki/Default-Rule-Functions#move
 --
 function LSystem.Rule.B:Move(info, ...)
 	local logLevel, diag = info:LogLevel()
@@ -128,22 +92,17 @@ function LSystem.Rule.B:Move(info, ...)
 	if logLevel > 1 then minetest.log(diag, "\tnew pos="..minetest.pos_to_string(state.pos)) end
 end
 
--- Sets the direction (state.dir) to one of the cardinal directions.
---
--- info     -> The l-system's current build info.
--- cardinal -> This selects the direction. Valid directions are: n,s,e,w,u,d,c
---             Nil selects north.
---
--- Examples:
--- '(w)k' -> dir = west {x=-1,y=0,z=0}
--- '(n)k' -> dir = west {x=-1,y=0,z=0}
+-- See https://github.com/mt-sane/lsystem/wiki/Default-Rule-Functions#setdir
 --
 function LSystem.Rule.B:SetDir(info, cardinal, ...)
 	local logLevel, diag = info:LogLevel()
 	if logLevel > 0 then LSystem.Rule.B.Diag(self, info, cardinal, ...) end
 
-	info.state.dir = cardinal and Lib.Cardinal.C[cardinal] or Lib.Cardinal.C.n
-	if logLevel > 1 then minetest.log(diag, "\tnew dir="..minetest.pos_to_string(info.state.dir)) end
+	local dir and Lib.Cardinal.C[cardinal]
+	if not dir then return end
+	
+	info.state.dir = dir
+	if logLevel > 1 then minetest.log(diag, "\tnew dir="..minetest.pos_to_string(dir)) end
 end
 
 local axis_rotation_functions = {
