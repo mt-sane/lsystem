@@ -134,8 +134,9 @@ end
 -- cardinal -> This selects the direction. Valid directions are: n,s,e,w,u,d,c
 --             Nil selects north.
 --
--- Examples with k being the rule key and current dir being north {x=0,y=0,z=1}.
--- '(w)k' -> dir = west {x=-1,y=0,z=0} - axiom returned is '(n)k'
+-- Examples:
+-- '(w)k' -> dir = west {x=-1,y=0,z=0}
+-- '(n)k' -> dir = west {x=-1,y=0,z=0}
 --
 function LSystem.Rule.B:SetDir(info, cardinal, ...)
 	local logLevel, diag = info:LogLevel()
@@ -145,35 +146,79 @@ function LSystem.Rule.B:SetDir(info, cardinal, ...)
 	if logLevel > 1 then minetest.log(diag, "\tnew dir="..minetest.pos_to_string(info.state.dir)) end
 end
 
--- Changes the current direction by 90°.
--- If the current direction is not a cardinal the function does nothing and returns nothing.
+local axis_rotation_functions = {
+	x = Lib.Mat.RXF,
+	y = Lib.Mat.RYF,
+	z = Lib.Mat.RZF,
+}
+
+local x_rotation_cash = {}
+local y_rotation_cash = {}
+local z_rotation_cash = {}
+
+local rotation_cashes = {
+	x = x_rotation_cash,
+	w = x_rotation_cash,
+	s = x_rotation_cash,
+
+	y = y_rotation_cash,
+	a = y_rotation_cash,
+	d = y_rotation_cash,
+
+	z = z_rotation_cash,
+	q = z_rotation_cash,
+	r = z_rotation_cash,
+}
+
+-- Changes the current direction
 --
--- info    -> The l-system's current build info.
--- turnKey -> This selects the turning direction.
---            nil selects a (yaw left).
---            Think of the turning direction as the movement keys in computer games: 
---            w = pitch down, s = pitch up.
---            a = yaw   left, d = yaw   right.
---            q = roll  left,  e = roll right.
+-- info         -> The l-system's current build info.
+-- rotation_key -> This selects the turning direction.
+--                 If this is an axis key ("x", "y", "z") then rotation is about that axis.
+--                 If this is a turn key ("w", "s", "a", "d", "q", "e") you can think of the 
+--                 turning direction as the movement keys in computer games: 
+--                 w = pitch down, s = pitch up.
+--                 a = yaw   left, d = yaw   right.
+--                 q = roll  left,  e = roll right.
+--                 If non of these the function will do nothing
+--  angle       -> If supplied this sets how far the direction is changed.
+--                 if this is nil     the angle field in the local  state will be used
+--                 if that is nil too the angle field in the global state will be used
+--                 if that is nil too 0° will be used
 --
 -- Examples:
--- With rule key = 'k' 
---      current dir = north. ( info.state.dir = Lib.Cardinal.C.n ).
+-- todo
 --
--- '(a)k' -> dir = west. ( info.state.dir = Lib.Cardinal.C.w )
---
-function LSystem.Rule.B:Turn(info, turnKey, ...)
+function LSystem.Rule.B:Turn(info, rotation_key, angle, ...)
 	local logLevel, diag = info:LogLevel()
-	if logLevel > 0 then LSystem.Rule.B.Diag(self, info, turnKey, ...) end
+	if logLevel > 0 then LSystem.Rule.B.Diag(self, info, turnKey, angle, ...) end
 
-	local state = info.state
-	local hash = minetest.hash_node_position(state.dir)
-	local turns = turnKey and Lib.Cardinal.Turns[turnKey] or Lib.Cardinal.Turns.a
-	local dir = turns[hash]
-	if not dir then return end
+	-- No parameter supplied 
+	
+	if not turnKey then return end
+	
+	-- An unknown key
+	
+	local cash = rotation_cashes[turnKey]
+	if not cash then return end
+	
+	-- A zero degree turn
+	
+	angle = angle or state.angle or info.global.angle or 0
+	if angle == 0 then return end
 
-	state.dir = dir
-	if logLevel > 1 then minetest.log(diag, "\tnew dir="..minetest.pos_to_string(dir)) end
+	-- Determine the rotation function
+
+	local turns = turnKey and Lib.Cardinal.Turns[turnKey]
+	local f = 
+		turns and turns.F
+		or axis_rotation_functions[turnKey]
+
+	-- Execute the turn
+	
+	state.dir = vector.new(f(angle, cash)(state.dir)
+
+	if logLevel > 1 then minetest.log(diag, "\tnew dir="..minetest.pos_to_string(state.dir)) end
 end
 
 -- Injects a random number parameter.
@@ -203,6 +248,7 @@ function LSystem.Rule.B:Random(info, ...)
 	return nil, ... and { ..., r } or { r }
 end
 
+-- TOdo Select parameter
 -- This selects a random character from the parameter and issues it either as axiom or parameter.
 --
 -- info -> The l-system's current build info.

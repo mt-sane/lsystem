@@ -34,6 +34,7 @@ function LSystem.P2A(parameters, axiom)
 	return axiom
 end
 
+-- Todo ',' spearated parameter lists
 -- Executes the l-system's inital 'rules'.
 -- 
 local function BuildInternal(state, stack)
@@ -102,7 +103,7 @@ local function Build(lsystem, depoys)
 		
 		if not BuildInternal(state, stack) then
 			local depoy = depoys and depoys[key]
-			if depoy then depoy(info) end
+			if depoy then depoy(info, unpack(state.parameters)) end
 
 			local rule = lsystem.rules[key]
 			local build = rule and rule.Build or LSystem.Rule.B.Diag
