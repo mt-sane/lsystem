@@ -89,6 +89,7 @@ function LSystem.Rule.B:Move(info, ...)
 
 	local state = info.state
 	state.pos = vector.add(state.pos, state.dir)
+	
 	if logLevel > 1 then minetest.log(diag, "\tnew pos="..minetest.pos_to_string(state.pos)) end
 end
 
@@ -98,7 +99,7 @@ function LSystem.Rule.B:SetDir(info, cardinal, ...)
 	local logLevel, diag = info:LogLevel()
 	if logLevel > 0 then LSystem.Rule.B.Diag(self, info, cardinal, ...) end
 
-	local dir and Lib.Cardinal.C[cardinal]
+	local dir = Lib.Cardinal.C[cardinal]
 	if not dir then return end
 	
 	info.state.dir = dir
@@ -150,32 +151,33 @@ local rotation_cashes = {
 --
 function LSystem.Rule.B:Turn(info, rotation_key, angle, ...)
 	local logLevel, diag = info:LogLevel()
-	if logLevel > 0 then LSystem.Rule.B.Diag(self, info, turnKey, angle, ...) end
+	if logLevel > 0 then LSystem.Rule.B.Diag(self, info, rotation_key, angle, ...) end
 
 	-- No parameter supplied 
 	
-	if not turnKey then return end
+	if not rotation_key then return end
 	
 	-- An unknown key
 	
-	local cash = rotation_cashes[turnKey]
+	local cash = rotation_cashes[rotation_key]
 	if not cash then return end
 	
 	-- A zero degree turn
 	
+	local state = info.state
 	angle = angle or state.angle or info.global.angle or 0
 	if angle == 0 then return end
 
 	-- Determine the rotation function
 
-	local turns = turnKey and Lib.Cardinal.Turns[turnKey]
+	local turns = rotation_key and Lib.Cardinal.Turns[rotation_key]
 	local f = 
 		turns and turns.F
-		or axis_rotation_functions[turnKey]
+		or axis_rotation_functions[rotation_key]
 
 	-- Execute the turn
 	
-	state.dir = vector.new(f(angle, cash)(state.dir)
+	state.dir = vector.new(f(angle, cash)(state.dir))
 
 	if logLevel > 1 then minetest.log(diag, "\tnew dir="..minetest.pos_to_string(state.dir)) end
 end
